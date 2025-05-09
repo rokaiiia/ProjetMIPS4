@@ -1,66 +1,70 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Plateforme d'examen</title>
-  <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plateforme d'Examen en Ligne</title>
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <div class="container">
-    <h1>Plateforme d'examen</h1>
+    <div class="container">
+        <div class="forms-container">
+            <!-- Login Form -->
+            <div class="form login-form">
+                <h2>Connexion</h2>
+                <form id="loginForm">
+                    <div class="input-group">
+                        <label for="login-email">Email</label>
+                        <input type="email" id="login-email" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="login-password">Mot de passe</label>
+                        <input type="password" id="login-password" required>
+                    </div>
+                    <button type="submit">Se connecter</button>
+                </form>
+                <p class="toggle-form">Pas de compte? <a href="#" id="showRegister">S'inscrire</a></p>
+            </div>
 
-    <div class="form-container">
-      <h2>Inscription</h2>
-      <form id="registerForm">
-        <input type="text" placeholder="Nom" name="nom" required />
-        <input type="text" placeholder="Prénom" name="prenom" required />
-        <input type="email" placeholder="Email" name="email" required />
-        <input type="password" placeholder="Mot de passe" name="password" required />
-        <select name="type">
-          <option value="etudiant">Étudiant</option>
-          <option value="enseignant">Enseignant</option>
-        </select>
-        <button type="submit">S'inscrire</button>
-      </form>
+            <!-- Registration Form -->
+            <div class="form register-form" style="display: none;">
+                <h2>Inscription</h2>
+                <form id="registerForm">
+                    <div class="input-group">
+                        <label for="reg-firstname">Prénom</label>
+                        <input type="text" id="reg-firstname" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="reg-lastname">Nom</label>
+                        <input type="text" id="reg-lastname" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="reg-email">Email</label>
+                        <input type="email" id="reg-email" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="reg-password">Mot de passe</label>
+                        <input type="password" id="reg-password" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="reg-role">Vous êtes:</label>
+                        <select id="reg-role" required>
+                            <option value="student">Étudiant</option>
+                            <option value="teacher">Enseignant</option>
+                        </select>
+                    </div>
+                    <div class="input-group" id="student-fields">
+                        <label for="reg-school">Établissement</label>
+                        <input type="text" id="reg-school">
+                        <label for="reg-program">Filière</label>
+                        <input type="text" id="reg-program">
+                    </div>
+                    <button type="submit">S'inscrire</button>
+                </form>
+                <p class="toggle-form">Déjà inscrit? <a href="#" id="showLogin">Se connecter</a></p>
+            </div>
+        </div>
     </div>
-
-    <div class="form-container">
-      <h2>Connexion</h2>
-      <form id="loginForm">
-        <input type="email" placeholder="Email" name="email" required />
-        <input type="password" placeholder="Mot de passe" name="password" required />
-        <button type="submit">Se connecter</button>
-      </form>
-    </div>
-
-    <div class="form-container hidden" id="examCreation">
-      <h2>Créer un examen</h2>
-      <form id="examForm">
-        <input type="text" placeholder="Titre" name="titre" required />
-        <textarea placeholder="Description" name="description" required></textarea>
-        <input type="text" placeholder="Public ciblé" name="public" required />
-        <button type="submit">Créer</button>
-      </form>
-    </div>
-
-    <div class="form-container hidden" id="studentExam">
-      <h2>Examen</h2>
-      <p id="questionText">Question 1: 2 + 2 = ?</p>
-      <input type="text" id="answer" />
-      <button id="nextQuestion">Suivant</button>
-    </div>
-
-    <div class="form-container hidden" id="scoreSection">
-      <h2>Votre score :</h2>
-      <p id="scoreValue">100/100</p>
-    </div>
-
-    <footer class="credits">
-      Projet réalisé par <strong>Rokaya Lazmi</strong> et <strong>Aya Kouyouche</strong>
-    </footer>
-  </div>
-
-  <script src="script.js"></script>
+    <script src="js/auth.js"></script>
 </body>
 </html>

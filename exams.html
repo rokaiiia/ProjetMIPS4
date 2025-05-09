@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes examens</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        .exam-card {
+            border: 1px solid #ddd;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+        }
+        .exam-actions {
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Mes examens</h1>
+        <button id="backToDashboard">Retour au tableau de bord</button>
+    </header>
+    
+    <div class="container">
+        <div id="examsList">
+            <!-- Exams will be loaded here -->
+        </div>
+    </div>
+    
+    <script src="../js/auth.js"></script>
+    <script src="../js/teacher.js"></script>
+    <script>
+        document.getElementById('backToDashboard').addEventListener('click', function() {
+            window.location.href = 'dashboard.html';
+        });
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const exams = JSON.parse(localStorage.getItem('teacher_exams')) || [];
+            const examsList = document.getElementById('examsList');
+            
+            if (exams.length === 0) {
+                examsList.innerHTML = '<p>Aucun examen créé pour le moment.</p>';
+                return;
+            }
+            
+            exams.forEach(exam => {
+                const examCard = document.createElement('div');
+                examCard.className = 'exam-card';
+                examCard.innerHTML = `
+                    <h3>${exam.title}</h3>
+                    <p>${exam.description}</p>
+                    <p><strong>Public cible:</strong> ${getTargetDisplay(exam.target)}</p>
+                    <p><strong>Nombre de questions:</strong> ${exam.questions.length}</p>
+                    <p><strong>Lien d'accès:</strong> <a href="${exam.link}" target="_blank">${exam.link}</a></p>
+                    <div class="exam-actions">
+                        <button class="viewExamBtn" data-exam-id="${exam.link.split('=')[1]}">Voir détails</button>
+                    </div>
+                `;
+                examsList.appendChild(examCard);
+            });
+            
+            function getTargetDisplay(target) {
+                const targets = {
+                    '2e_annee_mip': '2e année MIP',
+                    's4_groupe_a': 'S4 Groupe A',
+                    's4_groupe_b': 'S4 Groupe B'
+                };
+                return targets[target] || target;
+            }
+        });
+    </script>
+</body>
+</html>

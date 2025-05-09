@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Créer un examen</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        .question {
+            border: 1px solid #ddd;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+        }
+        .question-type {
+            margin-bottom: 1rem;
+        }
+        .qcm-options {
+            margin-top: 1rem;
+        }
+        .option {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        .option input[type="text"] {
+            flex-grow: 1;
+            margin-right: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Créer un nouvel examen</h1>
+        <button id="backToDashboard">Retour au tableau de bord</button>
+    </header>
+    
+    <div class="container">
+        <form id="examForm">
+            <div class="input-group">
+                <label for="examTitle">Titre de l'examen</label>
+                <input type="text" id="examTitle" required>
+            </div>
+            
+            <div class="input-group">
+                <label for="examDescription">Description</label>
+                <textarea id="examDescription" rows="3"></textarea>
+            </div>
+            
+            <div class="input-group">
+                <label for="examTarget">Public cible</label>
+                <select id="examTarget" required>
+                    <option value="2e_annee_mip">2e année MIP</option>
+                    <option value="s4_groupe_a">S4 Groupe A</option>
+                    <option value="s4_groupe_b">S4 Groupe B</option>
+                </select>
+            </div>
+            
+            <h3>Questions</h3>
+            <div id="questionsContainer">
+                <!-- Questions will be added here -->
+            </div>
+            
+            <button type="button" id="addQuestionBtn">Ajouter une question</button>
+            <button type="submit">Créer l'examen</button>
+        </form>
+    </div>
+    
+    <script src="../js/auth.js"></script>
+    <script src="../js/teacher.js"></script>
+    <script>
+        let questionCount = 0;
+        
+        document.getElementById('backToDashboard').addEventListener('click', function() {
+            window.location.href = 'dashboard.html';
+        });
+        
+        document.getElementById('addQuestionBtn').addEventListener('click', function() {
+            questionCount++;
+            const questionDiv = document.createElement('div');
+            questionDiv.className = 'question';
+            questionDiv.innerHTML = `
+                <div class="question-type">
+                    <label>Type de question:</label>
+                    <select class="questionType" onchange="toggleQuestionType(this)">
+                        <option value="direct">Question directe</option>
+                        <option value="qcm">QCM</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label>Énoncé</label>
+                    <textarea class="questionText" rows="2"></textarea>
+                </div>
+                
+                <div class="direct-question" style="display: block;">
+                    <div class="input-group">
+                        <label>Réponse attendue</label>
+                        <input type="text" class="expectedAnswer">
+                    </div>
+                    <div class="input-group">
+                        <label>Tolérance (%)</label>
+                        <input type="number" class="tolerance" min="0" max="100" value="10">
+                    </div>
+                </div>
+                
+                <div class="qcm-question" style="display: none;">
+                    <div class="qcm-options">
+                        <div class="option">
+                            <input type="text" placeholder="Option 1">
+                            <input type="checkbox" class="isCorrect">
+                            <label>Correcte</label>
+                        </div>
+                    </div>
+                    <button type="button" class="addOptionBtn">Ajouter une option</button>
+                </div>
+                
+                <div class="input-group">
+                    <label>Note</label>
+                    <input type="number" class="questionPoints" min="1" value="1">
+                </div>
+                
+                <div class="input-group">
+                    <label>Durée (secondes)</label>
+                    <input type="number" class="questionDuration" min="10" value="60">
+                </div>
+                
+                <button type="button" class="removeQuestionBtn">Supprimer cette question</button>
+            `;
+            
+            document.getElementById('questionsContainer').appendChild(questionDiv);
+            
+            // Add event listeners for the new question
+            questionDiv.querySelector('.removeQuestionBtn').addEventListener('click', function() {
+                questionDiv.remove();
+            });
+            
+            questionDiv.querySelector('.addOptionBtn')?.addEventListener('click', function() {
+                const optionsContainer = questionDiv.querySelector('.qcm-options');
+                const optionCount = optionsContainer.querySelectorAll('.option').length + 1;
+                
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'option';
+                optionDiv.innerHTML = `
+                    <input type="text" placeholder="Option ${optionCount}">
+                    <input type="checkbox" class="isCorrect">
+                    <label>Correcte</label>
+                `;
+                optionsContainer.appendChild(optionDiv);
+            });
+        });
+        
+        function toggleQuestionType(select) {
+            const questionDiv = select.closest('.question');
+            const isQCM = select.value === 'qcm';
+            
+            questionDiv.querySelector('.direct-question').style.display = isQCM ? 'none' : 'block';
+            questionDiv.querySelector('.qcm-question').style.display = isQCM ? 'block' : 'none';
+        }
+        
+        document.getElementById('examForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const exam = {
+                title: document.getElementById('examTitle').value,
+                description: document.getElementById('examDescription').value,
+                target: document.getElementById('examTarget').value,
+                questions: [],
+                link: generateExamLink()
+            };
+            
+            document.querySelectorAll('.question').forEach(questionDiv => {
+                const type = questionDiv.querySelector('.questionType').value;
+                const text = questionDiv.querySelector('.questionText').value;
+                const points = parseInt(questionDiv.querySelector('.questionPoints').value);
+                const duration = parseInt(questionDiv.querySelector('.questionDuration').value);
+                
+                if (type === 'direct') {
+                    exam.questions.push({
+                        type: 'direct',
+                        text: text,
+                        expectedAnswer: questionDiv.querySelector('.expectedAnswer').value,
+                        tolerance: parseInt(questionDiv.querySelector('.tolerance').value),
+                        points: points,
+                        duration: duration
+                    });
+                } else {
+                    const options = [];
+                    questionDiv.querySelectorAll('.qcm-options .option').forEach(optionDiv => {
+                        options.push({
+                            text: optionDiv.querySelector('input[type="text"]').value,
+                            correct: optionDiv.querySelector('.isCorrect').checked
+                        });
+                    });
+                    
+                    exam.questions.push({
+                        type: 'qcm',
+                        text: text,
+                        options: options,
+                        points: points,
+                        duration: duration
+                    });
+                }
+            });
+            
+            // Save exam to localStorage (replace with backend in production)
+            let exams = JSON.parse(localStorage.getItem('teacher_exams')) || [];
+            exams.push(exam);
+            localStorage.setItem('teacher_exams', JSON.stringify(exams));
+            
+            alert(`Examen créé avec succès! Lien d'accès: ${exam.link}`);
+            window.location.href = 'dashboard.html';
+        });
+        
+        function generateExamLink() {
+            const randomId = Math.random().toString(36).substring(2, 8);
+            return `${window.location.origin}/student/take-exam.html?examId=${randomId}`;
+        }
+        
+        // Add first question automatically
+        document.getElementById('addQuestionBtn').click();
+    </script>
+</body>
+</html>

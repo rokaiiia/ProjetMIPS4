@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Passer l'examen</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        #examContainer {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .question-container {
+            border: 1px solid #ddd;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-radius: 8px;
+            display: none;
+        }
+        .question-container.active {
+            display: block;
+        }
+        .timer {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #e74c3c;
+            margin-bottom: 1rem;
+        }
+        .qcm-options {
+            margin-top: 1rem;
+        }
+        .qcm-option {
+            margin-bottom: 0.5rem;
+        }
+        #results {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+        #geolocationStatus {
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Examen en cours</h1>
+        <div id="geolocationStatus" class="error">
+            Géolocalisation non activée
+        </div>
+    </header>
+    
+    <div class="container">
+        <div id="examContainer">
+            <!-- Exam content will be loaded here -->
+        </div>
+        
+        <div id="results">
+            <h2>Résultats</h2>
+            <p id="scoreDisplay">Votre score: </p>
+            <button id="backToDashboard">Retour au tableau de bord</button>
+        </div>
+    </div>
+    
+    <script src="../js/auth.js"></script>
+    <script src="../js/student.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const examId = new URLSearchParams(window.location.search).get('examId');
+            const examContainer = document.getElementById('examContainer');
+            const resultsDiv = document.getElementById('results');
+            const backToDashboardBtn = document.getElementById('backToDashboard');
+            const geolocationStatus = document.getElementById('geolocationStatus');
+            
+            // Request geolocation
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        geolocationStatus.textContent = 'Géolocalisation activée';
+                        geolocationStatus.className = 'success';
+                        // Save geolocation data (would be sent to server in real app)
+                        sessionStorage.setItem('exam_geolocation', JSON.stringify({
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            timestamp: new Date().toISOString()
+                        }));
+                    },
+                    function(error) {
+                        geolocationStatus.textContent = 'Erreur de géolocalisation: ' + error.message;
+                        geolocationStatus.className = 'error';
+                    }
+                );
+            } else {
+                geolocationStatus.textContent = 'Géolocalisation non supportée par votre navigateur';
+                geolocationStatus.className = 'error';
+            }
+            
+            // Load exam (from localStorage in this demo)
+            const exams = JSON.parse(localStorage.getItem('teacher_exams')) || [];
+            const exam = exams.find(e => e.link.includes(examId));
+            
+            if (!exam) {
+                examContainer.innerHTML = '<p>Examen non trouvé. Veuillez vérifier le lien.</p>';
+                return;
+            }
+            
+            // Display exam title and description
+            examContainer.innerHTML = `
+                <h2>${exam.title}</h2>
+                <p>${exam.description}</p>
+                <div id="questionsWrapper"></div>
+                <button id="submitExam" style="display: none;">Soumettre l'examen</button>
+            `;
+            
+            const questionsWrapper = document.getElementById('questionsWrapper');
+            let currentQuestionIndex = 0;
+            let userAnswers = {};
+            let timers = [];
+            
+            // Create question containers
+            exam.questions.forEach((question, index) => {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'question-container';
+                questionDiv.id = `question-${index}`;
+                
+                if (question.type === 'direct') {
+                    questionDiv.innerHTML = `
+                        <div class="timer">Temps restant: <span class="time">${question.duration}</span>s</div>
+                        <h3>Question ${index + 1}</h3>
+                        <p>${question.text}</p>
+                        <div class="input-group">
+                            <label for="answer-${index}">Votre réponse</label>
+                            <input type="text" id="answer-${index}" class="answer-input">
+                        </div>
+                    `;
+                } else {
+                    let optionsHtml = '';
+                    question.options.forEach((option, optIndex) => {
+                        optionsHtml += `
+                            <div class="qcm-option">
+                                <input type="checkbox" id="option-${index}-${optIndex}" name="qcm-${index}" value="${optIndex}">
+                                <label for="option-${index}-${optIndex}">${option.text}</label>
+                            </div>
+                        `;
+                    });
+                    
+                    questionDiv.innerHTML = `
+                        <div class="timer">Temps restant: <span class="time">${question.duration}</span>s</div>
+                        <h3>Question ${index + 1}</h3>
+                        <p>${question.text}</p>
+                        <div class="qcm-options">
+                            ${optionsHtml}
+                        </div>
+                    `;
+                }
+                
+                questionsWrapper.appendChild(questionDiv);
+                
+                // Start timer for this question
+                const timerElement = questionDiv.querySelector('.time');
+                let timeLeft = question.duration;
+                timerElement.textContent = timeLeft;
+                
+                const timer = setInterval(() => {
+                    timeLeft--;
+                    timerElement.textContent = timeLeft;
+                    
+                    if (timeLeft <= 0) {
+                        clearInterval(timer);
+                        if (index === currentQuestionIndex) {
+                            nextQuestion();
+                        }
+                    }
+                }, 1000);
+                
+                timers.push(timer);
+            });
+            
+            // Show first question
+            showQuestion(0);
+            
+            // Navigation buttons
+            document.addEventListener('click', function(e) {
+                if (e.target.id === 'nextQuestion') {
+                    nextQuestion();
+                } else if (e.target.id === 'prevQuestion') {
+                    prevQuestion();
+                } else if (e.target.id === 'submitExam') {
+                    submitExam();
+                } else if (e.target.id === 'backToDashboard') {
+                    window.location.href = 'dashboard.html';
+                }
+            });
+            
+            function showQuestion(index) {
+                // Hide all questions
+                document.querySelectorAll('.question-container').forEach(q => {
+                    q.classList.remove('active');
+                });
+                
+                // Show current question
+                document.getElementById(`question-${index}`).classList.add('active');
+                
+                // Update navigation buttons
+                const submitBtn = document.getElementById('submitExam');
+                if (index === exam.questions.length - 1) {
+                    submitBtn.style.display = 'block';
+                } else {
+                    submitBtn.style.display = 'none';
+                }
+            }
+            
+            function nextQuestion() {
+                saveAnswer(currentQuestionIndex);
+                if (currentQuestionIndex < exam.questions.length - 1) {
+                    currentQuestionIndex++;
+                    showQuestion(currentQuestionIndex);
+                }
+            }
+            
+            function prevQuestion() {
+                if (currentQuestionIndex > 0) {
+                    currentQuestionIndex--;
+                    showQuestion(currentQuestionIndex);
+                }
+            }
+            
+            function saveAnswer(index) {
+                const question = exam.questions[index];
+                
+                if (question.type === 'direct') {
+                    userAnswers[index] = {
+                        type: 'direct',
+                        answer: document.getElementById(`answer-${index}`).value
+                    };
+                } else {
+                    const selectedOptions = [];
+                    document.querySelectorAll(`input[name="qcm-${index}"]:checked`).forEach(checkbox => {
+                        selectedOptions.push(parseInt(checkbox.value));
+                    });
+                    
+                    userAnswers[index] = {
+                        type: 'qcm',
+                        answers: selectedOptions
+                    };
+                }
+            }
+            
+            function submitExam() {
+                saveAnswer(currentQuestionIndex);
+                
+                // Calculate score
+                let totalScore = 0;
+                let maxScore = 0;
+                
+                exam.questions.forEach((question, index) => {
+                    maxScore += question.points;
+                    
+                    if (!userAnswers[index]) {
+                        return;
+                    }
+                    
+                    if (question.type === 'direct') {
+                        const userAnswer = userAnswers[index].answer.toLowerCase().trim();
+                        const expectedAnswer = question.expectedAnswer.toLowerCase().trim();
+                        
+                        // Simple similarity check (would use more advanced in real app)
+                        if (userAnswer === expectedAnswer) {
+                            totalScore += question.points;
+                        } else {
+                            // Check with tolerance (Levenshtein distance could be better)
+                            const tolerance = question.tolerance || 0;
+                            const maxDiff = Math.floor(expectedAnswer.length * tolerance / 100);
+                            if (Math.abs(userAnswer.length - expectedAnswer.length) <= maxDiff) {
+                                totalScore += question.points * 0.5; // Half points for tolerance
+                            }
+                        }
+                    } else {
+                        // Check QCM answers
+                        const correctOptions = question.options
+                            .map((opt, i) => opt.correct ? i : -1)
+                            .filter(i => i !== -1);
+                        
+                        const userSelected = userAnswers[index].answers || [];
+                        const correctSelected = userSelected.filter(opt => correctOptions.includes(opt)).length;
+                        const incorrectSelected = userSelected.length - correctSelected;
+                        
+                        // Partial credit for partially correct answers
+                        if (correctSelected === correctOptions.length && incorrectSelected === 0) {
+                            totalScore += question.points;
+                        } else if (correctSelected > 0) {
+                            totalScore += question.points * (correctSelected / correctOptions.length) * 0.5;
+                        }
+                    }
+                });
+                
+                // Stop all timers
+                timers.forEach(timer => clearInterval(timer));
+                
+                // Display results
+                const scorePercent = Math.round((totalScore / maxScore) * 100);
+                document.getElementById('scoreDisplay').textContent = `Votre score: ${scorePercent}/100`;
+                
+                // Hide exam, show results
+                examContainer.style.display = 'none';
+                resultsDiv.style.display = 'block';
+                
+                // Save results (would be sent to server in real app)
+                const currentUser = JSON.parse(sessionStorage.getItem('currentUser'));
+                const results = {
+                    examId: examId,
+                    studentId: currentUser.email,
+                    score: scorePercent,
+                    date: new Date().toISOString(),
+                    geolocation: JSON.parse(sessionStorage.getItem('exam_geolocation'))
+                };
+                
+                let allResults = JSON.parse(localStorage.getItem('exam_results')) || [];
+                allResults.push(results);
+                localStorage.setItem('exam_results', JSON.stringify(allResults));
+            }
+        });
+    </script>
+</body>
+</html>

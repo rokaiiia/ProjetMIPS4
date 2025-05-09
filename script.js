@@ -1,53 +1,70 @@
-let currentUser = null;
-
-document.getElementById("registerForm").addEventListener("submit", (e) => {
+// Toggle between login and register forms
+document.getElementById('showRegister').addEventListener('click', function(e) {
   e.preventDefault();
-  alert("Inscription réussie (simulation)");
+  document.querySelector('.login-form').style.display = 'none';
+  document.querySelector('.register-form').style.display = 'block';
 });
 
-document.getElementById("loginForm").addEventListener("submit", (e) => {
+document.getElementById('showLogin').addEventListener('click', function(e) {
   e.preventDefault();
-  const type = document.querySelector("#registerForm select").value;
-  currentUser = type;
-  alert("Connexion réussie (simulation)");
+  document.querySelector('.register-form').style.display = 'none';
+  document.querySelector('.login-form').style.display = 'block';
+});
 
-  if (type === "enseignant") {
-    document.getElementById("examCreation").classList.remove("hidden");
+// Show/hide student fields based on role selection
+document.getElementById('reg-role').addEventListener('change', function() {
+  const studentFields = document.getElementById('student-fields');
+  if (this.value === 'student') {
+      studentFields.style.display = 'block';
   } else {
-    document.getElementById("studentExam").classList.remove("hidden");
-    startTimer();
+      studentFields.style.display = 'none';
   }
 });
 
-document.getElementById("examForm").addEventListener("submit", (e) => {
+// Registration form submission
+document.getElementById('registerForm').addEventListener('submit', function(e) {
   e.preventDefault();
-  alert("Examen créé (simulation)");
+  
+  const user = {
+      firstname: document.getElementById('reg-firstname').value,
+      lastname: document.getElementById('reg-lastname').value,
+      email: document.getElementById('reg-email').value,
+      password: document.getElementById('reg-password').value,
+      role: document.getElementById('reg-role').value,
+      school: document.getElementById('reg-school').value,
+      program: document.getElementById('reg-program').value
+  };
+  
+  // Save to localStorage (replace with actual backend in production)
+  localStorage.setItem('user_' + user.email, JSON.stringify(user));
+  
+  alert('Inscription réussie! Vous pouvez maintenant vous connecter.');
+  document.querySelector('.register-form').style.display = 'none';
+  document.querySelector('.login-form').style.display = 'block';
+  this.reset();
 });
 
-let currentQuestion = 0;
-const questions = [
-  { question: "2 + 2 = ?", answer: "4" },
-  { question: "Capital of France?", answer: "Paris" }
-];
-let score = 0;
-
-document.getElementById("nextQuestion").addEventListener("click", () => {
-  const input = document.getElementById("answer").value.trim();
-  if (input.toLowerCase() === questions[currentQuestion].answer.toLowerCase()) {
-    score += 50;
-  }
-
-  currentQuestion++;
-  if (currentQuestion < questions.length) {
-    document.getElementById("questionText").textContent = "Question " + (currentQuestion + 1) + ": " + questions[currentQuestion].question;
-    document.getElementById("answer").value = "";
+// Login form submission
+document.getElementById('loginForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  
+  const email = document.getElementById('login-email').value;
+  const password = document.getElementById('login-password').value;
+  
+  // Get user from localStorage (replace with actual backend in production)
+  const user = JSON.parse(localStorage.getItem('user_' + email));
+  
+  if (user && user.password === password) {
+      // Save current user session
+      sessionStorage.setItem('currentUser', JSON.stringify(user));
+      
+      // Redirect based on role
+      if (user.role === 'teacher') {
+          window.location.href = 'teacher/dashboard.html';
+      } else {
+          window.location.href = 'student/dashboard.html';
+      }
   } else {
-    document.getElementById("studentExam").classList.add("hidden");
-    document.getElementById("scoreSection").classList.remove("hidden");
-    document.getElementById("scoreValue").textContent = score + "/100";
+      alert('Email ou mot de passe incorrect');
   }
 });
-
-function startTimer() {
-  console.log("Timer démarré...");
-}

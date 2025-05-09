@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de bord - Étudiant</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <h1>Tableau de bord étudiant</h1>
+        <button id="logout">Déconnexion</button>
+    </header>
+    
+    <div class="container">
+        <div id="examAccess">
+            <h2>Accéder à un examen</h2>
+            <form id="examAccessForm">
+                <div class="input-group">
+                    <label for="examLink">Lien d'examen</label>
+                    <input type="text" id="examLink" placeholder="Collez le lien fourni par votre enseignant">
+                </div>
+                <button type="submit">Accéder à l'examen</button>
+            </form>
+        </div>
+    </div>
+    
+    <script src="../js/auth.js"></script>
+    <script src="../js/student.js"></script>
+    <script>
+        document.getElementById('logout').addEventListener('click', function() {
+            sessionStorage.removeItem('currentUser');
+            window.location.href = '../index.html';
+        });
+        
+        document.getElementById('examAccessForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const link = document.getElementById('examLink').value;
+            const examId = link.split('=')[1];
+            
+            if (examId) {
+                window.location.href = `take-exam.html?examId=${examId}`;
+            } else {
+                alert('Lien invalide. Veuillez utiliser le lien fourni par votre enseignant.');
+            }
+        });
+    </script>
+</body>
+</html>
