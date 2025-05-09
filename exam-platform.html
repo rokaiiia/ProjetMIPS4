@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plateforme d'Examen en Ligne</title>
+    <style>
+        /* === Global Styles === */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .form-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 800px;
+        }
+        
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        /* === Navigation === */
+        header {
+            background: #3498db;
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        /* === Forms === */
+        .input-group {
+            margin-bottom: 1rem;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        
+        button {
+            padding: 0.75rem 1.5rem;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        /* === Exam Creation === */
+        .question {
+            border: 1px solid #ddd;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+        }
+        
+        .qcm-options {
+            margin-top: 1rem;
+        }
+        
+        .option {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        /* === Taking Exam === */
+        .timer {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #e74c3c;
+        }
+        
+        #results {
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        #geolocationStatus {
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            border-radius: 4px;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <!-- Main App Container -->
+    <div id="app">
+        <!-- Dynamic content will be loaded here -->
+    </div>
+
+    <script>
+        // ===== STATE MANAGEMENT =====
+        const state = {
+            currentUser: null,
+            currentView: 'login',
+            exams: JSON.parse(localStorage.getItem('exams')) || [],
+            results: JSON.parse(localStorage.getItem('results')) || []
+        };
+
+        // ===== VIEW RENDERERS =====
+        function render(view) {
+            state.currentView = view;
+            document.getElementById('app').innerHTML = getViewHTML(view);
+            setupEventListeners(view);
+        }
+
+        function getViewHTML(view) {
+            switch(view) {
+                case 'login':
+                    return `
+                        <div class="container">
+                            <div class="form-container">
+                                <h2>Connexion</h2>
+                                <form id="loginForm">
+                                    <div class="input-group">
+                                        <label for="login-email">Email</label>
+                                        <input type="email" id="login-email" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="login-password">Mot de passe</label>
+                                        <input type="password" id="login-password" required>
+                                    </div>
+                                    <button type="submit">Se connecter</button>
+                                </form>
+                                <p>Pas de compte? <a href="#" id="showRegister">S'inscrire</a></p>
+                            </div>
+                        </div>
+                    `;
+                
+                case 'register':
+                    return `
+                        <div class="container">
+                            <div class="form-container">
+                                <h2>Inscription</h2>
+                                <form id="registerForm">
+                                    <div class="input-group">
+                                        <label for="reg-firstname">Prénom</label>
+                                        <input type="text" id="reg-firstname" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="reg-lastname">Nom</label>
+                                        <input type="text" id="reg-lastname" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="reg-email">Email</label>
+                                        <input type="email" id="reg-email" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="reg-password">Mot de passe</label>
+                                        <input type="password" id="reg-password" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="reg-role">Vous êtes:</label>
+                                        <select id="reg-role" required>
+                                            <option value="student">Étudiant</option>
+                                            <option value="teacher">Enseignant</option>
+                                        </select>
+                                    </div>
+                                    <div class="input-group" id="student-fields">
+                                        <label for="reg-school">Établissement</label>
+                                        <input type="text" id="reg-school">
+                                        <label for="reg-program">Filière</label>
+                                        <input type="text" id="reg-program">
+                                    </div>
+                                    <button type="submit">S'inscrire</button>
+                                </form>
+                                <p>Déjà inscrit? <a href="#" id="showLogin">Se connecter</a></p>
+                            </div>
+                        </div>
+                    `;
+                
+                case 'teacher-dashboard':
+                    return `
+                        <header>
+                            <h1>Tableau de bord enseignant</h1>
+                            <button id="logout">Déconnexion</button>
+                        </header>
+                        <div class="container">
+                            <div class="form-container">
+                                <h2>Actions</h2>
+                                <div style="display: flex; gap: 1rem;">
+                                    <button id="createExamBtn">Créer un examen</button>
+                                    <button id="viewExamsBtn">Voir mes examens</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                
+                case 'student-dashboard':
+                    return `
+                        <header>
+                            <h1>Tableau de bord étudiant</h1>
+                            <button id="logout">Déconnexion</button>
+                        </header>
+                        <div class="container">
+                            <div class="form-container">
+                                <h2>Accéder à un examen</h2>
+                                <form id="examAccessForm">
+                                    <div class="input-group">
+                                        <label for="examLink">Lien d'examen</label>
+                                        <input type="text" id="examLink" placeholder="Collez le lien fourni par votre enseignant">
+                                    </div>
+                                    <button type="submit">Accéder à l'examen</button>
+                                </form>
+                            </div>
+                        </div>
+                    `;
+                
+                case 'create-exam':
+                    return `
+                        <header>
+                            <h1>Créer un examen</h1>
+                            <button id="backToDashboard">Retour</button>
+                        </header>
+                        <div class="container">
+                            <div class="form-container">
+                                <form id="examForm">
+                                    <div class="input-group">
+                                        <label for="examTitle">Titre</label>
+                                        <input type="text" id="examTitle" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="examDescription">Description</label>
+                                        <textarea id="examDescription" rows="3"></textarea>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="examTarget">Public cible</label>
+                                        <select id="examTarget" required>
+                                            <option value="2e_annee_mip">2e année MIP</option>
+                                            <option value="s4_groupe_a">S4 Groupe A</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <h3>Questions</h3>
+                                    <div id="questionsContainer"></div>
+                                    
+                                    <button type="button" id="addQuestionBtn">Ajouter une question</button>
+                                    <button type="submit">Créer l'examen</button>
+                                </form>
+                            </div>
+                        </div>
+                    `;
+                
+                case 'take-exam':
+                    return `
+                        <header>
+                            <h1>Examen en cours</h1>
+                            <div id="geolocationStatus" class="error">
+                                Géolocalisation non activée
+                            </div>
+                        </header>
+                        <div class="container">
+                            <div id="examContainer">
+                                <div id="questionsWrapper"></div>
+                                <button id="submitExam" class="hidden">Soumettre</button>
+                            </div>
+                            <div id="results" class="hidden">
+                                <h2>Résultats</h2>
+                                <p id="scoreDisplay"></p>
+                                <button id="backToDashboard">Retour</button>
+                            </div>
+                        </div>
+                    `;
+                
+                default:
+                    return '<p>Vue non trouvée</p>';
+            }
+        }
+
+        // ===== EVENT HANDLERS =====
+        function setupEventListeners(view) {
+            switch(view) {
+                case 'login':
+                    document.getElementById('showRegister')?.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        render('register');
+                    });
+                    
+                    document.getElementById('loginForm')?.addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        const email = document.getElementById('login-email').value;
+                        const password = document.getElementById('login-password').value;
+                        
+                        // In a real app, this would check against a database
+                        const user = JSON.parse(localStorage.getItem(`user_${email}`));
+                        
+                        if (user && user.password === password) {
+                            state.currentUser = user;
+                            localStorage.setItem('currentUser', JSON.stringify(user));
+                            
+                            if (user.role === 'teacher') {
+                                render('teacher-dashboard');
+                            } else {
+                                render('student-dashboard');
+                            }
+                        } else {
+                            alert('Email ou mot de passe incorrect');
+                        }
+                    });
+                    break;
+                
+                case 'register':
+                    document.getElementById('showLogin')?.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        render('login');
+                    });
+                    
+                    document.getElementById('reg-role')?.addEventListener('change', function() {
+                        const studentFields = document.getElementById('student-fields');
+                        studentFields.style.display = this.value === 'student' ? 'block' : 'none';
+                    });
+                    
+                    document.getElementById('registerForm')?.addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        
+                        const user = {
+                            firstname: document.getElementById('reg-firstname').value,
+                            lastname: document.getElementById('reg-lastname').value,
+                            email: document.getElementById('reg-email').value,
+                            password: document.getElementById('reg-password').value,
+                            role: document.getElementById('reg-role').value,
+                            school: document.getElementById('reg-school').value,
+                            program: document.getElementById('reg-program').value
+                        };
+                        
+                        localStorage.setItem(`user_${user.email}`, JSON.stringify(user));
+                        alert('Inscription réussie! Connectez-vous maintenant.');
+                        render('login');
+                    });
+                    break;
+                
+                case 'teacher-dashboard':
+                    document.getElementById('logout')?.addEventListener('click', () => {
+                        state.currentUser = null;
+                        localStorage.removeItem('currentUser');
+                        render('login');
+                    });
+                    
+                    document.getElementById('createExamBtn')?.addEventListener('click', () => {
+                        render('create-exam');
+                        initializeExamCreation();
+                    });
+                    
+                    document.getElementById('viewExamsBtn')?.addEventListener('click', () => {
+                        // In a full app, this would show a list of exams
+                        alert('Cette fonctionnalité serait implémentée dans une version complète');
+                    });
+                    break;
+                
+                case 'student-dashboard':
+                    document.getElementById('logout')?.addEventListener('click', () => {
+                        state.currentUser = null;
+                        localStorage.removeItem('currentUser');
+                        render('login');
+                    });
+                    
+                    document.getElementById('examAccessForm')?.addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        const link = document.getElementById('examLink').value;
+                        const examId = link.split('=')[1];
+                        
+                        if (examId) {
+                            render('take-exam');
+                            initializeExamTaking(examId);
+                        } else {
+                            alert('Lien invalide');
+                        }
+                    });
+                    break;
+                
+                case 'create-exam':
+                    document.getElementById('backToDashboard')?.addEventListener('click', () => {
+                        if (state.currentUser?.role === 'teacher') {
+                            render('teacher-dashboard');
+                        } else {
+                            render('login');
+                        }
+                    });
+                    break;
+                
+                case 'take-exam':
+                    document.getElementById('backToDashboard')?.addEventListener('click', () => {
+                        if (state.currentUser?.role === 'student') {
+                            render('student-dashboard');
+                        } else {
+                            render('login');
+                        }
+                    });
+                    break;
+            }
+        }
+
+        // ===== EXAM CREATION =====
+        function initializeExamCreation() {
+            let questionCount = 0;
+            
+            document.getElementById('addQuestionBtn').addEventListener('click', function() {
+                questionCount++;
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'question';
+                questionDiv.innerHTML = `
+                    <div class="input-group">
+                        <label>Type de question:</label>
+                        <select class="questionType" onchange="toggleQuestionType(this)">
+                            <option value="direct">Question directe</option>
+                            <option value="qcm">QCM</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>Énoncé</label>
+                        <textarea class="questionText" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="direct-question">
+                        <div class="input-group">
+                            <label>Réponse attendue</label>
+                            <input type="text" class="expectedAnswer">
+                        </div>
+                        <div class="input-group">
+                            <label>Tolérance (%)</label>
+                            <input type="number" class="tolerance" min="0" max="100" value="10">
+                        </div>
+                    </div>
+                    
+                    <div class="qcm-question" style="display: none;">
+                        <div class="qcm-options">
+                            <div class="option">
+                                <input type="text" placeholder="Option 1">
+                                <input type="checkbox" class="isCorrect">
+                                <label>Correcte</label>
+                            </div>
+                        </div>
+                        <button type="button" class="addOptionBtn">Ajouter une option</button>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>Note</label>
+                        <input type="number" class="questionPoints" min="1" value="1">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>Durée (secondes)</label>
+                        <input type="number" class="questionDuration" min="10" value="60">
+                    </div>
+                    
+                    <button type="button" class="removeQuestionBtn">Supprimer</button>
+                `;
+                
+                document.getElementById('questionsContainer').appendChild(questionDiv);
+                
+                // Add event listeners for the new question
+                questionDiv.querySelector('.removeQuestionBtn').addEventListener('click', function() {
+                    questionDiv.remove();
+                });
+                
+                questionDiv.querySelector('.addOptionBtn')?.addEventListener('click', function() {
+                    const optionsContainer = questionDiv.querySelector('.qcm-options');
+                    const optionCount = optionsContainer.querySelectorAll('.option').length + 1;
+                    
+                    const optionDiv = document.createElement('div');
+                    optionDiv.className = 'option';
+                    optionDiv.innerHTML = `
+                        <input type="text" placeholder="Option ${optionCount}">
+                        <input type="checkbox" class="isCorrect">
+                        <label>Correcte</label>
+                    `;
+                    optionsContainer.appendChild(optionDiv);
+                });
+            });
+            
+            // Add first question automatically
+            document.getElementById('addQuestionBtn').click();
+            
+            // Form submission
+            document.getElementById('examForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const exam = {
+                    id: generateId(),
+                    title: document.getElementById('examTitle').value,
+                    description: document.getElementById('examDescription').value,
+                    target: document.getElementById('examTarget').value,
+                    questions: [],
+                    link: `${window.location.href}?view=take-exam&examId=${generateId()}`
+                };
+                
+                // Collect questions
+                document.querySelectorAll('.question').forEach(questionDiv => {
+                    const type = questionDiv.querySelector('.questionType').value;
+                    const text = questionDiv.querySelector('.questionText').value;
+                    const points = parseInt(questionDiv.querySelector('.questionPoints').value);
+                    const duration = parseInt(questionDiv.querySelector('.questionDuration').value);
+                    
+                    if (type === 'direct') {
+                        exam.questions.push({
+                            type: 'direct',
+                            text: text,
+                            expectedAnswer: questionDiv.querySelector('.expectedAnswer').value,
+                            tolerance: parseInt(questionDiv.querySelector('.tolerance').value),
+                            points: points,
+                            duration: duration
+                        });
+                    } else {
+                        const options = [];
+                        questionDiv.querySelectorAll('.qcm-options .option').forEach(optionDiv => {
+                            options.push({
+                                text: optionDiv.querySelector('input[type="text"]').value,
+                                correct: optionDiv.querySelector('.isCorrect').checked
+                            });
+                        });
+                        
+                        exam.questions.push({
+                            type: 'qcm',
+                            text: text,
+                            options: options,
+                            points: points,
+                            duration: duration
+                        });
+                    }
+                });
+                
+                // Save exam
+                state.exams.push(exam);
+                localStorage.setItem('exams', JSON.stringify(state.exams));
+                
+                alert(`Examen créé! Lien: ${exam.link}`);
+                render('teacher-dashboard');
+            });
+        }
+
+        // ===== EXAM TAKING =====
+        function initializeExamTaking(examId) {
+            // Request geolocation
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    () => {
+                        document.getElementById('geolocationStatus').textContent = 'Géolocalisation activée';
+                        document.getElementById('geolocationStatus').className = 'success';
+                    },
+                    (error) => {
+                        document.getElementById('geolocationStatus').textContent = 'Erreur: ' + error.message;
+                        document.getElementById('geolocationStatus').className = 'error';
+                    }
+                );
+            }
+            
+            // Find exam (in a real app, this would come from a database)
+            const exam = state.exams.find(e => e.id === examId);
+            
+            if (!exam) {
+                document.getElementById('examContainer').innerHTML = '<p>Examen non trouvé</p>';
+                return;
+            }
+            
+            // Display exam
+            document.getElementById('questionsWrapper').innerHTML = '';
+            
+            exam.questions.forEach((question, index) => {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'question-container hidden';
+                questionDiv.id = `question-${index}`;
+                
+                if (question.type === 'direct') {
+                    questionDiv.innerHTML = `
+                        <div class="timer">Temps: <span class="time">${question.duration}</span>s</div>
+                        <h3>Question ${index + 1}</h3>
+                        <p>${question.text}</p>
+                        <div class="input-group">
+                            <label>Votre réponse</label>
+                            <input type="text" class="answer-input">
+                        </div>
+                    `;
+                } else {
+                    let optionsHtml = question.options.map((opt, i) => `
+                        <div class="option">
+                            <input type="checkbox" id="q-${index}-opt-${i}">
+                            <label for="q-${index}-opt-${i}">${opt.text}</label>
+                        </div>
+                    `).join('');
+                    
+                    questionDiv.innerHTML = `
+                        <div class="timer">Temps: <span class="time">${question.duration}</span>s</div>
+                        <h3>Question ${index + 1}</h3>
+                        <p>${question.text}</p>
+                        <div class="qcm-options">${optionsHtml}</div>
+                    `;
+                }
+                
+                document.getElementById('questionsWrapper').appendChild(questionDiv);
+            });
+            
+            // Show first question
+            document.querySelector('.question-container').classList.remove('hidden');
+            
+            // Submit handler
+            document.getElementById('submitExam').addEventListener('click', () => {
+                // Calculate score (simplified for demo)
+                const score = Math.floor(Math.random() * 100);
+                
+                // Show results
+                document.getElementById('examContainer').classList.add('hidden');
+                document.getElementById('results').classList.remove('hidden');
+                document.getElementById('scoreDisplay').textContent = `Votre score: ${score}/100`;
+                
+                // Save result
+                state.results.push({
+                    examId: examId,
+                    studentId: state.currentUser?.email || 'anonymous',
+                    score: score,
+                    date: new Date().toISOString()
+                });
+                localStorage.setItem('results', JSON.stringify(state.results));
+            });
+        }
+
+        // ===== HELPER FUNCTIONS =====
+        function toggleQuestionType(select) {
+            const questionDiv = select.closest('.question');
+            const isQCM = select.value === 'qcm';
+            
+            questionDiv.querySelector('.direct-question').style.display = isQCM ? 'none' : 'block';
+            questionDiv.querySelector('.qcm-question').style.display = isQCM ? 'block' : 'none';
+        }
+        
+        function generateId() {
+            return Math.random().toString(36).substring(2, 9);
+        }
+
+        // ===== INITIALIZATION =====
+        function init() {
+            // Check if user is already logged in
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                state.currentUser = JSON.parse(savedUser);
+                render(state.currentUser.role === 'teacher' ? 'teacher-dashboard' : 'student-dashboard');
+            } else {
+                render('login');
+            }
+        }
+
+        // Start the app
+        init();
+    </script>
+</body>
+</html>
