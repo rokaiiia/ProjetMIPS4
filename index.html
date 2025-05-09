@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -33,6 +33,32 @@
         <button type="submit">Se connecter</button>
       </form>
     </div>
+
+    <div class="form-container hidden" id="examCreation">
+      <h2>Créer un examen</h2>
+      <form id="examForm">
+        <input type="text" placeholder="Titre" name="titre" required />
+        <textarea placeholder="Description" name="description" required></textarea>
+        <input type="text" placeholder="Public ciblé" name="public" required />
+        <button type="submit">Créer</button>
+      </form>
+    </div>
+
+    <div class="form-container hidden" id="studentExam">
+      <h2>Examen</h2>
+      <p id="questionText">Question 1: 2 + 2 = ?</p>
+      <input type="text" id="answer" />
+      <button id="nextQuestion">Suivant</button>
+    </div>
+
+    <div class="form-container hidden" id="scoreSection">
+      <h2>Votre score :</h2>
+      <p id="scoreValue">100/100</p>
+    </div>
+
+    <footer class="credits">
+      Projet réalisé par <strong>Rokaya Lazmi</strong> et <strong>Aya Kouyouche</strong>
+    </footer>
   </div>
 
   <script src="script.js"></script>

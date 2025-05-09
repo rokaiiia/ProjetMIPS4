@@ -1,38 +1,53 @@
-// Gère l'inscription
-document.getElementById("registerForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-  
-    const formData = new FormData(e.target);
-    const data = Object.fromEntries(formData.entries());
-  
-    const response = await fetch("http://localhost:3000/api/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-  
-    const result = await response.json();
-    alert(result.message || "Inscription effectuée !");
-  });
-  
-  // Gère la connexion
-  document.getElementById("loginForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-  
-    const formData = new FormData(e.target);
-    const data = Object.fromEntries(formData.entries());
-  
-    const response = await fetch("http://localhost:3000/api/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-  
-    const result = await response.json();
-    if (response.ok) {
-      alert("Connexion réussie !");
-      localStorage.setItem("token", result.token); // JWT sauvegardé
-    } else {
-      alert(result.message || "Erreur de connexion");
-    }
-  });
+let currentUser = null;
+
+document.getElementById("registerForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  alert("Inscription réussie (simulation)");
+});
+
+document.getElementById("loginForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const type = document.querySelector("#registerForm select").value;
+  currentUser = type;
+  alert("Connexion réussie (simulation)");
+
+  if (type === "enseignant") {
+    document.getElementById("examCreation").classList.remove("hidden");
+  } else {
+    document.getElementById("studentExam").classList.remove("hidden");
+    startTimer();
+  }
+});
+
+document.getElementById("examForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  alert("Examen créé (simulation)");
+});
+
+let currentQuestion = 0;
+const questions = [
+  { question: "2 + 2 = ?", answer: "4" },
+  { question: "Capital of France?", answer: "Paris" }
+];
+let score = 0;
+
+document.getElementById("nextQuestion").addEventListener("click", () => {
+  const input = document.getElementById("answer").value.trim();
+  if (input.toLowerCase() === questions[currentQuestion].answer.toLowerCase()) {
+    score += 50;
+  }
+
+  currentQuestion++;
+  if (currentQuestion < questions.length) {
+    document.getElementById("questionText").textContent = "Question " + (currentQuestion + 1) + ": " + questions[currentQuestion].question;
+    document.getElementById("answer").value = "";
+  } else {
+    document.getElementById("studentExam").classList.add("hidden");
+    document.getElementById("scoreSection").classList.remove("hidden");
+    document.getElementById("scoreValue").textContent = score + "/100";
+  }
+});
+
+function startTimer() {
+  console.log("Timer démarré...");
+}
