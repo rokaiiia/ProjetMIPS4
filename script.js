@@ -1,22 +1,38 @@
-let movable=false
-const boule=document.getElementById("boule")
-window.addEventListener("mousemove",(event)=>{
-    if (movable){
-    console.log(event.clientX,event.clientY)
-    boule.style.left=(event.clientX-boule.clientWidth/2)+"px"
-    boule.style.top=(event.clientY-boule.clientHeight/2)+"px"
+// Gère l'inscription
+document.getElementById("registerForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+  
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+  
+    const response = await fetch("http://localhost:3000/api/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+  
+    const result = await response.json();
+    alert(result.message || "Inscription effectuée !");
+  });
+  
+  // Gère la connexion
+  document.getElementById("loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+  
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+  
+    const response = await fetch("http://localhost:3000/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+  
+    const result = await response.json();
+    if (response.ok) {
+      alert("Connexion réussie !");
+      localStorage.setItem("token", result.token); // JWT sauvegardé
+    } else {
+      alert(result.message || "Erreur de connexion");
     }
-})
-
-document.getElementById("boule").addEventListener("click",()=>{
-movable=!movable
-})
-
-window.addEventListener("keydown",(event)=>{
-    switch(event.key){
-        case "ArrowLeft": boule.style.left=(boule.offsetLeft-5)+"px";break;
-        case "ArrowRight": boule.style.left=(boule.offsetLeft+5)+"px";break;
-        case "ArrowUp": boule.style.top=(boule.offsetTop-5)+"px";break;
-        case "ArrowDown": boule.style.top=(boule.offsetTop+5)+"px";break;
-    }
-})
+  });

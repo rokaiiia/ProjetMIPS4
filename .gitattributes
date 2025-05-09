@@ -1,2 +1,28 @@
-# Auto detect text files and perform LF normalization
+# Text files
+*.js text
+*.html text
+*.css text
+*.json text
+*.md text
+*.env text
+
+# Handle line endings automatically
 * text=auto
+
+# Treat lock files as binary
+package-lock.json binary
+yarn.lock binary
+
+# Prevent merge conflicts in images and other binaries
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.mp4 binary
+*.mp3 binary
+*.mov binary
+
+# For frontend build files (if used)
+/dist/* linguist-vendored
+/build/* linguist-vendored
